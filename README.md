@@ -8,4 +8,4 @@ To use this sample app that leverages Socket Mobile's Capture SDK for C#. Just c
 
 ## capturesdk
 
-For more on the C# package, please see the page on [nuget.org](nuget.org/packages/SocketMobile.Capture).
+For more on the C# package, please see the page on [nuget.org] (www.nuget.org/packages/SocketMobile.Capture).
