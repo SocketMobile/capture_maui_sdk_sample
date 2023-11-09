@@ -1,30 +1,62 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="capture_maui_sdk_sample.MainPage"
-             BackgroundColor="Black">
-
-    <ScrollView>
-        <VerticalStackLayout
-            Spacing="25"
-            Padding="20,0"
-            VerticalOptions="Center">
-
-            <Image
-                Source="socket.png"
-                HeightRequest="200"
-                HorizontalOptions="Center" />
-
-            <ScrollView HeightRequest="300" MaximumHeightRequest="300">
-            <Frame BorderColor="Gray" CornerRadius="10">
-            <Label
-                x:Name="DataLabel"
-                FontSize="18"
-                HorizontalOptions="Center" />
-            </Frame>
-            </ScrollView>
-
-        </VerticalStackLayout>
-    </ScrollView>
+             x:Class="capture_maui_sdk_sample.MainPage">
+    <ContentPage.Content>
+        <StackLayout Orientation="Vertical" VerticalOptions="Center" Margin="0,20,0,20" Spacing="5">
+            <StackLayout Orientation="Vertical" VerticalOptions="Center" HorizontalOptions="Center">
+                <Label
+                    x:Name="selectedDeviceText"
+                    Text="{Binding SelectedDeviceText, Mode=TwoWay}"
+                    FontSize="25"
+                    VerticalOptions="Center"
+                    HorizontalOptions="FillAndExpand"/>
+                <Picker 
+                    x:Name="deviceList"
+                    Title="Select Device"
+                    HorizontalTextAlignment="Center"
+                    ItemDisplayBinding="{Binding DeviceName}"
+                    SelectedIndexChanged="DeviceList_SelectedIndexChanged"
+                    Unfocused="DeviceList_Unfocused"
+                    Focused="DeviceList_Focused"
+                    TitleColor="Gray"
+                    HorizontalOptions="Center"/>
+            </StackLayout>
+            <Label 
+                x:Name="deviceArrivalRemoval"
+                HorizontalTextAlignment="Center"
+                VerticalTextAlignment="Center" 
+                Background="LightGray"
+                TextColor="Black" FontSize="30"
+                Text="{Binding DeviceEventText, Mode=TwoWay}"/>
+            <Label 
+                x:Name="deviceDecodedData"
+                HorizontalTextAlignment="Center"
+                VerticalTextAlignment="Center" 
+                Background="LightGray"
+                TextColor="Black" FontSize="30"
+                Text="{Binding DisplayText, Mode=TwoWay}"/>
+            <StackLayout Orientation="Horizontal" HorizontalOptions="End">
+                <Label 
+                    x:Name="switchLabel"
+                    Text="Enable/Disable SocketCam"
+                    IsVisible="{Binding IsVisibleAndroid}"
+                    VerticalOptions="Center"/>
+                <Switch 
+                    x:Name="socketCamSwitch"
+                    IsEnabled="{Binding IsSocketCamSwitchEnable}"
+                    Toggled="Switch_SocketCamStatus"
+                    IsToggled="{Binding IsSocketCamEnable}"
+                    IsVisible="{Binding IsVisibleAndroid}"/>
+            </StackLayout>
+            <Button
+                Text="Trigger Scan"
+                HeightRequest="42"
+                VerticalOptions="Center"
+                HorizontalOptions="Center"
+                CornerRadius="5"
+                Clicked="Button_TriggerScan"/>
+        </StackLayout>
+    </ContentPage.Content>
 
 </ContentPage>
