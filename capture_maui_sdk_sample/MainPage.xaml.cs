@@ -10,11 +10,17 @@ namespace capture_maui_sdk_sample;
 
 public partial class MainPage : ContentPage, INotifyPropertyChanged
 {
-    public CaptureHelper capture = new CaptureHelper();
+    public static CaptureHelper capture = new CaptureHelper();
 
     private static ObservableCollection<StoredDevice> _deviceList = new ObservableCollection<StoredDevice>();
 
     private static CaptureHelperDevice _selectedDevice;
+
+    static string appId = "";
+    static string developerId = "";
+    static string appKey = "";
+
+    private static bool isFirstLaunch = true;
 
     private string _selectedDeviceText = $"Selected Device for Trigger Scan Button: ";
     public string SelectedDeviceText
@@ -95,10 +101,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     {
         InitializeComponent();
 
-        string appId = "";
-        string developerId = "";
-        string appKey = "";
-
         switchLabel.BindingContext = this;
         selectedDeviceText.BindingContext = this;
         deviceList.BindingContext = this;
@@ -131,19 +133,76 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         IsVisibleAndroid = Device.RuntimePlatform == Device.Android || Device.RuntimePlatform == Device.iOS;
 
+        // (Android only) use to check and start (if not running already) the Android Service
+        //AndroidService().ContinueWith(res =>
+        //{
+        // Place capture.Open() here and remove from below
+        //});
+
+        Open();
+    }
+
+    public MainPage(bool isForReEnableConnection)
+    {
+    }
+
+    public void Open()
+    {
         capture.OpenAsync(appId, developerId, appKey)
-        .ContinueWith(result => {
-            System.Diagnostics.Debug.Print("Open Capture returns {0}", result.Result);
+            .ContinueWith(result =>
+            {
+                System.Diagnostics.Debug.Print("Open Capture returns {0}", result.Result);
+                if (SktErrors.SKTSUCCESS(result.Result))
+                {
+                    if (isFirstLaunch)
+                    {
+                        capture.DeviceArrival += Capture_DeviceArrival;
+                        capture.DeviceRemoval += Capture_DeviceRemoval;
+                        capture.DecodedData += Capture_DecodedData;
+
+                        // (Android-iOS) Check if SocketCam is enabled to set the Switch
+                        getSocketCamStatusInit();
+                    }
+                }
+            });
+    }
+
+    public void ReEnableConnection()
+    {
+        // List will be repopulated on OpenAsync()
+        _deviceList.Clear();
+
+        capture.CloseAsync().ContinueWith(result =>
+        {
             if (SktErrors.SKTSUCCESS(result.Result))
             {
-                capture.DeviceArrival += Capture_DeviceArrival;
-                capture.DeviceRemoval += Capture_DeviceRemoval; ;
-                capture.DecodedData += Capture_DecodedData;
-
-                // (Android-iOS) Check if SocketCam is enabled to set the Switch
-                getSocketCamStatusInit();
+                isFirstLaunch = false;
+                Open();
             }
         });
+
+    }
+
+    // (Android only) Check if Android Service is installed and running. If it is not running then starts the Service
+    private async Task AndroidService()
+    {
+        if (Device.RuntimePlatform == Device.Android)
+        {
+            switch (capture.IsAndroidServiceInstalled())
+            {
+                case true:
+                    if (capture.IsAndroidServiceRunning() == false) capture.StartAndroidService();
+                    break;
+
+                case false:
+                    // Make sure that Companion is installed 
+                    break;
+
+            }
+        }
+
+        // Add time to let the Service start
+        await Task.Delay(1000);
     }
 
     // Device Events--
