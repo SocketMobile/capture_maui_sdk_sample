@@ -160,6 +160,13 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
                         capture.DeviceRemoval += Capture_DeviceRemoval;
                         capture.DecodedData += Capture_DecodedData;
 
+#if __ANDROID__
+                        // Start CaptureExtension to gain access to SocketCam device
+
+                        CaptureExtension captureExtension = new CaptureExtension(Android.App.Application.Context, capture.GetHandle());
+                        captureExtension.Start();
+#endif
+
                         // (Android-iOS) Check if SocketCam is enabled to set the Switch
                         getSocketCamStatusInit();
                     }
@@ -184,6 +191,7 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     }
 
     // (Android only) Check if Android Service is installed and running. If it is not running then starts the Service
+    // Not compatible with SocketCam
     private async Task AndroidService()
     {
         if (Device.RuntimePlatform == Device.Android)

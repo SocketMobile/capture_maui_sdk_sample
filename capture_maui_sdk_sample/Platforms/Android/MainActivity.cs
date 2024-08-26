@@ -12,8 +12,8 @@ public class MainActivity : MauiAppCompatActivity
     {
         Platform.Init(this, savedInstanceState);
 
-        CaptureHelper capture = new CaptureHelper();
-        capture.SetAndroidContext(this);
+        // Set to use Android Service Methods
+        CaptureHelper.SetAndroidServiceContext(this);
 
         base.OnCreate(savedInstanceState);
     }

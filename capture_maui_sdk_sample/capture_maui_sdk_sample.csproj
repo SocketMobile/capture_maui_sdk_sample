@@ -68,7 +68,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
-	  <PackageReference Include="SocketMobile.Capture" Version="1.4.17.146" />
+	  <PackageReference Include="SocketMobile.Capture" Version="1.7.11.744" />
 	</ItemGroup>
 
 </Project>

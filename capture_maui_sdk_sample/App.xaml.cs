@@ -21,7 +21,8 @@ public partial class App : Application
     {
 #if __ANDROID__
         // (Android only) Re-enable communication with the Service after comming back from deep sleep mode
-        rootPage.ReEnableConnection();
+        // Not compatible with SocketCam
+        //rootPage.ReEnableConnection();
 #endif
     }
 }

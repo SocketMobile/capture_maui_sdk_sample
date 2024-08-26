@@ -40,5 +40,11 @@
 	</array>
 	<key>MinimumOSVersion</key>
 	<string>14.2</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>sktcompanion</string>
+	</array>
+	<key>CFBundleAllowMixedLocalizations</key>
+	<true/>
 </dict>
 </plist>
