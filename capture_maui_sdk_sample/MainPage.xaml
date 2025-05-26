@@ -18,7 +18,6 @@
                     ItemDisplayBinding="{Binding DeviceName}"
                     SelectedIndexChanged="DeviceList_SelectedIndexChanged"
                     Unfocused="DeviceList_Unfocused"
-                    Focused="DeviceList_Focused"
                     TitleColor="Gray"
                     HorizontalOptions="Center"/>
             </StackLayout>

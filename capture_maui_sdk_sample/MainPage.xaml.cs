@@ -2,9 +2,11 @@
 using SocketMobile.Capture;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data;
-using System.Text.RegularExpressions;
 using capture_maui_sdk_sample.Model;
+#if __IOS__
+using Foundation;
+using UIKit;
+#endif
 
 namespace capture_maui_sdk_sample;
 
@@ -15,7 +17,15 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     private static ObservableCollection<StoredDevice> _deviceList = new ObservableCollection<StoredDevice>();
 
     private static CaptureHelperDevice _selectedDevice;
+#if __IOS__
+    private UIViewController _socketCamViewController;
 
+    // SocketCam view: position and dimensions (min = 250 x 250)
+    private int _socketCamXPos = 0;
+    private int _socketCamYPos = 0;
+    private int _socketCamWidth = 250;
+    private int _socketCamHeight = 250;
+#endif
     static string appId = "";
     static string developerId = "";
     static string appKey = "";
@@ -109,34 +119,32 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         deviceDecodedData.BindingContext = this;
         socketCamSwitch.BindingContext = this;
 
-        switch (Device.RuntimePlatform)
+        if (DeviceInfo.Platform == DevicePlatform.iOS)
         {
-            case Device.iOS:
-                appId = "<User App ID>";
-                developerId = "<User Developer ID>";
-                appKey = "<User App Key>";
-                break;
-
-            case Device.Android:
-                appId = "<User App ID>";
-                developerId = "<User Developer ID>";
-                appKey = "<User App Key>";
-                break;
-
-            case Device.UWP:
-                appId = "<User App ID>";
-                developerId = "<User Developer ID>";
-                appKey = "<User App Key>";
-                break;
-
+            appId = "<User App ID>";
+            developerId = "<User Developer ID>";
+            appKey = "<User App Key>";
+        }
+        else if (DeviceInfo.Platform == DevicePlatform.Android)
+        {
+            appId = "<User App ID>";
+            developerId = "<User Developer ID>";
+            appKey = "<User App Key>";
+        }
+        else if (DeviceInfo.Platform == DevicePlatform.WinUI)
+        {
+            appId = "<User App ID>";
+            developerId = "<User Developer ID>";
+            appKey = "<User App Key>";
         }
 
-        IsVisibleAndroid = Device.RuntimePlatform == Device.Android || Device.RuntimePlatform == Device.iOS;
+
+        IsVisibleAndroid = DeviceInfo.Platform == DevicePlatform.Android || DeviceInfo.Platform == DevicePlatform.iOS;
 
         // (Android only) use to check and start (if not running already) the Android Service
         //AndroidService().ContinueWith(res =>
         //{
-        // Place capture.Open() here and remove from below
+        // Place Open() here and remove from below
         //});
 
         Open();
@@ -168,12 +176,14 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 #endif
 
                         // (Android-iOS) Check if SocketCam is enabled to set the Switch
-                        getSocketCamStatusInit();
+                        GetSocketCamStatusInit();
                     }
                 }
             });
     }
 
+    // (Android only) Re-enable communication with the Service after comming back from deep sleep mode
+    // Not compatible with SocketCam
     public void ReEnableConnection()
     {
         // List will be repopulated on OpenAsync()
@@ -191,10 +201,9 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
     }
 
     // (Android only) Check if Android Service is installed and running. If it is not running then starts the Service
-    // Not compatible with SocketCam
     private async Task AndroidService()
     {
-        if (Device.RuntimePlatform == Device.Android)
+        if (DeviceInfo.Platform == DevicePlatform.Android)
         {
             switch (capture.IsAndroidServiceInstalled())
             {
@@ -256,20 +265,22 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
         // Last device arrival is the new selected device
         _selectedDevice = e.CaptureDevice;
-
-        // Set SocketCam Overlay to display camera
-#if (__IOS__ || __ANDROID__)
-        MainThread.BeginInvokeOnMainThread(async () =>
-        {
-            var getStatus = await capture.GetSocketCamStatusAsync();
-            if (getStatus.Status == CaptureHelper.SocketCamStatus.Enable) _selectedDevice.SetSocketCamOverlay();
-        });
-#endif
     }
 
     private void Capture_DecodedData(object sender, CaptureHelper.DecodedDataArgs e)
     {
         DisplayText = string.Format("Decoded Data: {0}", e.DecodedData.DataToUTF8String);
+
+#if __IOS__
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            if (_socketCamViewController != null)
+            {
+                _socketCamViewController.View.RemoveFromSuperview();
+            }
+        });
+
+#endif
     }
     // --Device
 
@@ -282,25 +293,6 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         }
     }
 
-    private void DeviceList_Focused(object sender, FocusEventArgs e)
-    {
-        int i = 0;
-        int index = -1;
-
-        foreach (var item in _deviceList)
-        {
-            if (item.DeviceName == _selectedDevice.GetDeviceInfo().Name)
-            {
-                index = i;
-                break;
-            }
-
-            i++;
-        }
-
-        deviceList.SelectedIndex = index;
-    }
-
     private void DeviceList_Unfocused(object sender, FocusEventArgs e)
     {
         deviceList.SelectedIndex = -1;
@@ -308,11 +300,33 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
 
     private void Button_TriggerScan(object sender, EventArgs e)
     {
-        _selectedDevice?.SetTriggerStartAsync();
+        _selectedDevice?.SetTriggerStartAsync().ContinueWith(result =>
+        {
+            // To use SocketCam on iOS get the returned object and use it as a View Controller
+#if __IOS__
+            var resultDictionary = (NSDictionary)result.Result.ResultObject;
+            var resultType = (NSString)resultDictionary[NSObject.FromObject("SKTObjectType")];
+
+            if (resultType == "SKTSocketCamViewControllerType")
+            {
+                _socketCamViewController = (UIViewController)resultDictionary[NSObject.FromObject("SKTSocketCamViewController")];
+
+                if (_socketCamViewController != null)
+                {
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        var currentViewController = Platform.GetCurrentUIViewController();
+                        _socketCamViewController.View.Frame = new CoreGraphics.CGRect(_socketCamXPos, _socketCamYPos, _socketCamWidth, _socketCamHeight);
+                        currentViewController.View.AddSubview(_socketCamViewController.View);
+                    });
+                }
+            }
+#endif
+        });
     }
 
     // (Android-iOS) Check if SocketCam is enabled to set the Switch
-    private async void getSocketCamStatusInit()
+    private async void GetSocketCamStatusInit()
     {
         var getStatus = await capture.GetSocketCamStatusAsync();
         if (getStatus.Status != CaptureHelper.SocketCamStatus.NotSupported)
@@ -339,4 +353,3 @@ public partial class MainPage : ContentPage, INotifyPropertyChanged
         await capture.SetSocketCamStatusAsync(_isSocketCamEnable ? CaptureHelper.SocketCamStatus.Enable : CaptureHelper.SocketCamStatus.Disable);
     }
 }
-
